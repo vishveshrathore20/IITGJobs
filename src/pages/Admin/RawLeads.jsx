@@ -17,6 +17,7 @@ const RawLeadManager = () => {
   const { authToken } = useAuth();
 
   const [file, setFile] = useState(null);
+  const [industry, setIndustry] = useState(''); // <-- Added Industry state
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [rawLeads, setRawLeads] = useState([]);
@@ -40,28 +41,27 @@ const RawLeadManager = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [leadSummary, setLeadSummary] = useState({
-  total: 0,
-  completed: 0,
-  incomplete: 0,
-});
+    total: 0,
+    completed: 0,
+    incomplete: 0,
+  });
 
   const leadsPerPage = 10;
   const fileInputRef = useRef(null);
 
   const fetchLeadSummary = async () => {
-  try {
-    const res = await axios.get(`${API_BASE}/admin/rawleads/summary`, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-    setLeadSummary(res.data);
-  } catch (err) {
-    console.error('Failed to fetch lead summary:', err);
-    toast.error('Failed to fetch lead summary');
-  }
-};
-
+    try {
+      const res = await axios.get(`${API_BASE}/admin/rawleads/summary`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      setLeadSummary(res.data);
+    } catch (err) {
+      console.error('Failed to fetch lead summary:', err);
+      toast.error('Failed to fetch lead summary');
+    }
+  };
 
   const fetchLeads = async () => {
     try {
@@ -87,7 +87,6 @@ const RawLeadManager = () => {
   useEffect(() => {
     fetchLeads();
     fetchLeadSummary();
-
   }, [currentPage]);
 
   useEffect(() => {
@@ -102,9 +101,11 @@ const RawLeadManager = () => {
 
   const handleUpload = async () => {
     if (!file) return toast.error('Please select a file');
+    if (!industry.trim()) return toast.error('Please enter an industry'); // industry required
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('industry', industry); // <-- Send industry with file
 
     setUploading(true);
     setUploadResult(null);
@@ -121,6 +122,7 @@ const RawLeadManager = () => {
       toast.success('Upload complete');
       fetchLeads();
       setFile(null);
+      setIndustry(''); // reset
     } catch (err) {
       console.error('[Upload Failed]', err);
       toast.error(err?.response?.data?.message || 'Upload failed');
@@ -152,24 +154,26 @@ const RawLeadManager = () => {
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       <AdminNavbar />
       <h1 className="text-3xl font-bold mb-4 text-gray-800 my-13">📊 Raw Leads Panel</h1>
+
+      {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-  <div className="bg-white shadow rounded-xl p-4 text-center">
-    <p className="text-gray-500 text-sm">Total Raw Leads</p>
-    <p className="text-2xl font-bold text-gray-800">{leadSummary.total}</p>
-  </div>
-  <div className="bg-green-100 shadow rounded-xl p-4 text-center">
-    <p className="text-green-700 text-sm">Completed</p>
-    <p className="text-2xl font-bold text-green-800">{leadSummary.completed}</p>
-  </div>
-  <div className="bg-red-100 shadow rounded-xl p-4 text-center">
-    <p className="text-red-700 text-sm">Incomplete</p>
-    <p className="text-2xl font-bold text-red-800">{leadSummary.incomplete}</p>
-  </div>
-</div>
+        <div className="bg-white shadow rounded-xl p-4 text-center">
+          <p className="text-gray-500 text-sm">Total Raw Leads</p>
+          <p className="text-2xl font-bold text-gray-800">{leadSummary.total}</p>
+        </div>
+        <div className="bg-green-100 shadow rounded-xl p-4 text-center">
+          <p className="text-green-700 text-sm">Completed</p>
+          <p className="text-2xl font-bold text-green-800">{leadSummary.completed}</p>
+        </div>
+        <div className="bg-red-100 shadow rounded-xl p-4 text-center">
+          <p className="text-red-700 text-sm">Incomplete</p>
+          <p className="text-2xl font-bold text-red-800">{leadSummary.incomplete}</p>
+        </div>
+      </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        {/* Upload Buttons */}
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
+        {/* File Upload */}
         <div>
           <input
             type="file"
@@ -185,16 +189,26 @@ const RawLeadManager = () => {
             <FiUploadCloud className="inline-block mr-2" />
             Choose File
           </button>
-          {file && (
-            <button
-              onClick={handleUpload}
-              disabled={uploading}
-              className="ml-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-            >
-              {uploading ? 'Uploading...' : 'Upload'}
-            </button>
-          )}
         </div>
+
+        {/* Industry Input */}
+        <input
+          type="text"
+          placeholder="Enter Industry"
+          value={industry}
+          onChange={(e) => setIndustry(e.target.value)}
+          className="border p-2 rounded w-60"
+        />
+
+        {file && (
+          <button
+            onClick={handleUpload}
+            disabled={uploading}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+          >
+            {uploading ? 'Uploading...' : 'Upload'}
+          </button>
+        )}
 
         {/* Filter Toggle */}
         <button
@@ -294,6 +308,7 @@ const RawLeadManager = () => {
                 'Designation',
                 'Company',
                 'Location',
+                'Industry',
                 'Mobile',
                 'Email',
                 'Remarks',
@@ -318,6 +333,7 @@ const RawLeadManager = () => {
                   <td className="p-2">{lead.designation}</td>
                   <td className="p-2">{lead.company?.CompanyName || 'N/A'}</td>
                   <td className="p-2">{lead.location}</td>
+                  <td className="p-2">{lead.industry?.name || 'N/A'}</td>
                   <td className="p-2">{lead.mobile?.join(', ')}</td>
                   <td className="p-2">{lead.email}</td>
                   <td className="p-2">{lead.remarks}</td>

@@ -16,7 +16,7 @@ const RawLeads = () => {
 
   const fields = [
     'name','designation','companyName','location', 'email', 'mobile', 
-    'industry',  'remarks', 'division',
+    'industryName',  'remarks', 'division',
     'productLine', 'turnOver', 'employeeStrength',
      // Display only
   ];
@@ -50,13 +50,22 @@ const RawLeads = () => {
 
   // Flatten nested data (e.g., company.CompanyName -> companyName, keep company ObjectId)
   const flattenData = (data) => {
-    const flattened = { ...data };
-    if (data.company && typeof data.company === 'object') {
-      flattened.companyName = data.company.CompanyName || '';
-      flattened.company = data.company._id || ''; // preserve ObjectId
-    }
-    return flattened;
-  };
+  const flattened = { ...data };
+
+  if (data.company && typeof data.company === 'object') {
+    flattened.companyName = data.company.CompanyName || '';
+    flattened.company = data.company._id || '';
+  }
+
+ if (data.industry && typeof data.industry === 'object') {
+  flattened.industryName = data.industry.name || '';
+  flattened.industry = data.industry._id || '';
+}
+
+
+  return flattened;
+};
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
